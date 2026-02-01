@@ -1,8 +1,6 @@
-from http.server import BaseHTTPRequestHandler
 import json
 from datetime import datetime
 import urllib.request
-import urllib.error
 from statistics import median
 
 
@@ -23,11 +21,10 @@ CURRENCY_INFO = {
 TARGET_CURRENCIES = list(CURRENCY_INFO.keys())
 
 
-def fetch_exchangerate_api(base: str):
-    """Fetch rates from ExchangeRate-API"""
+def fetch_exchangerate_api(base):
     try:
         url = f"https://open.er-api.com/v6/latest/{base}"
-        with urllib.request.urlopen(url, timeout=5) as response:
+        with urllib.request.urlopen(url, timeout=10) as response:
             data = json.loads(response.read().decode())
             if data.get("result") == "success":
                 return data.get("rates", {})
@@ -36,11 +33,10 @@ def fetch_exchangerate_api(base: str):
     return None
 
 
-def fetch_frankfurter(base: str):
-    """Fetch rates from Frankfurter API"""
+def fetch_frankfurter(base):
     try:
         url = f"https://api.frankfurter.app/latest?from={base}"
-        with urllib.request.urlopen(url, timeout=5) as response:
+        with urllib.request.urlopen(url, timeout=10) as response:
             data = json.loads(response.read().decode())
             rates = data.get("rates", {})
             rates[base] = 1.0
@@ -50,12 +46,11 @@ def fetch_frankfurter(base: str):
     return None
 
 
-def fetch_fawazahmed(base: str):
-    """Fetch rates from Fawaz Ahmed API"""
+def fetch_fawazahmed(base):
     try:
         base_lower = base.lower()
         url = f"https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/{base_lower}.json"
-        with urllib.request.urlopen(url, timeout=5) as response:
+        with urllib.request.urlopen(url, timeout=10) as response:
             data = json.loads(response.read().decode())
             raw_rates = data.get(base_lower, {})
             return {k.upper(): v for k, v in raw_rates.items() if isinstance(v, (int, float))}
@@ -65,7 +60,6 @@ def fetch_fawazahmed(base: str):
 
 
 def resolve_conflicts(api_results, currency):
-    """Use median to handle conflicting rates"""
     rates = []
     for result in api_results:
         if result and currency in result:
@@ -80,9 +74,7 @@ def resolve_conflicts(api_results, currency):
     return median(rates)
 
 
-def get_exchange_rates(base: str):
-    """Aggregate rates from multiple APIs"""
-    # Fetch from all APIs
+def get_exchange_rates(base):
     results = [
         fetch_exchangerate_api(base),
         fetch_frankfurter(base),
@@ -95,7 +87,6 @@ def get_exchange_rates(base: str):
     if sources_used == 0:
         return None, 0
     
-    # Aggregate rates
     aggregated_rates = {}
     for currency in TARGET_CURRENCIES:
         if currency == base:
@@ -118,52 +109,51 @@ def get_exchange_rates(base: str):
     return aggregated_rates, sources_used
 
 
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        # Parse query parameters
-        from urllib.parse import urlparse, parse_qs
-        parsed = urlparse(self.path)
-        params = parse_qs(parsed.query)
-        base = params.get('base', ['USD'])[0].upper()
-        
-        # Get rates
-        rates, sources_used = get_exchange_rates(base) or ({}, 0)
-        
-        if not rates:
-            self.send_response(503)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            response = {
+def handler(request):
+    from urllib.parse import parse_qs, urlparse
+    
+    # Parse query parameters
+    parsed = urlparse(request.url if hasattr(request, 'url') else '/?base=USD')
+    params = parse_qs(parsed.query)
+    base = params.get('base', ['USD'])[0].upper()
+    
+    # Get rates
+    result = get_exchange_rates(base)
+    rates = result[0] if result else None
+    sources_used = result[1] if result else 0
+    
+    headers = {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': '*'
+    }
+    
+    if not rates:
+        return {
+            'statusCode': 503,
+            'headers': headers,
+            'body': json.dumps({
                 "error": True,
                 "message": "Rates temporarily unavailable",
                 "retry_after_seconds": 30
-            }
-            self.wfile.write(json.dumps(response).encode())
-            return
-        
-        # Success response
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        
-        response = {
-            "base": base,
-            "rates": rates,
-            "last_updated": datetime.utcnow().isoformat(),
-            "freshness": "fresh",
-            "sources_used": sources_used,
-            "sources_available": 3,
-            "is_cached": False,
-            "cache_age_seconds": 0,
-            "message": None
+            })
         }
-        self.wfile.write(json.dumps(response).encode())
     
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', '*')
-        self.end_headers()
+    response = {
+        "base": base,
+        "rates": rates,
+        "last_updated": datetime.utcnow().isoformat(),
+        "freshness": "fresh",
+        "sources_used": sources_used,
+        "sources_available": 3,
+        "is_cached": False,
+        "cache_age_seconds": 0,
+        "message": None
+    }
+    
+    return {
+        'statusCode': 200,
+        'headers': headers,
+        'body': json.dumps(response)
+    }
