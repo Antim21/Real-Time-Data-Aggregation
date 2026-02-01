@@ -4,7 +4,8 @@ import RateGrid from './components/RateGrid'
 import FreshnessIndicator from './components/FreshnessIndicator'
 import ErrorState from './components/ErrorState'
 
-const API_BASE_URL = 'http://localhost:8000'
+// Use relative path for Vercel deployment, fallback to localhost for dev
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 const REFRESH_INTERVAL = 60000 // Auto-refresh every 60 seconds
 
 function App() {
