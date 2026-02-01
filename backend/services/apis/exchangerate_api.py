@@ -3,16 +3,12 @@ from typing import Optional, Dict
 from datetime import datetime
 
 
+# Fetch rates from ExchangeRate-API (free tier)
 async def fetch_rates(base: str = "USD") -> Optional[Dict]:
-    """
-    Fetch rates from ExchangeRate-API (free tier).
-    https://www.exchangerate-api.com/
-    
-    Free tier: 1500 requests/month
-    """
     url = f"https://open.er-api.com/v6/latest/{base}"
     
     try:
+        # 5 second timeout to avoid hanging
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(url)
             

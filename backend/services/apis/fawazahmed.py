@@ -3,13 +3,8 @@ from typing import Optional, Dict
 from datetime import datetime
 
 
+# Fetch rates from Fawaz Ahmed Currency API (CDN-hosted, fast)
 async def fetch_rates(base: str = "USD") -> Optional[Dict]:
-    """
-    Fetch rates from Fawaz Ahmed's Currency API.
-    https://github.com/fawazahmed0/exchange-api
-    
-    Free, no API key, hosted on GitHub/CDN, very fast.
-    """
     base_lower = base.lower()
     url = f"https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/{base_lower}.json"
     
@@ -20,12 +15,8 @@ async def fetch_rates(base: str = "USD") -> Optional[Dict]:
             if response.status_code != 200:
                 return None
             
-            data = response.json()
-            
-            # This API returns rates nested under the base currency
             raw_rates = data.get(base_lower, {})
-            
-            # Convert to uppercase keys for consistency
+            # Convert keys to uppercase for consistency
             rates = {k.upper(): v for k, v in raw_rates.items() if isinstance(v, (int, float))}
             
             return {

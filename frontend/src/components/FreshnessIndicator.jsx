@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types'
 import { useMemo } from 'react'
 
+// Displays data freshness status and source info
 function FreshnessIndicator({ freshness, lastUpdated, sourcesUsed, sourcesAvailable, isCached }) {
+    // Calculate human-readable time ago
     const timeAgo = useMemo(() => {
         if (!lastUpdated) return 'Unknown'
 
@@ -18,6 +20,7 @@ function FreshnessIndicator({ freshness, lastUpdated, sourcesUsed, sourcesAvaila
         return 'Over a day ago'
     }, [lastUpdated])
 
+    // Map freshness status to display label
     const freshnessLabel = useMemo(() => {
         switch (freshness) {
             case 'fresh':

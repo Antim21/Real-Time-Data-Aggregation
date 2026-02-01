@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types'
 import RateCard from './RateCard'
 
+// Grid layout for displaying all currency rate cards
 function RateGrid({ rates, baseCurrency, loading }) {
     if (!rates || Object.keys(rates).length === 0) {
         return null

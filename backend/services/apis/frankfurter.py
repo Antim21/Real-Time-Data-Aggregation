@@ -3,14 +3,8 @@ from typing import Optional, Dict
 from datetime import datetime
 
 
+# Fetch rates from Frankfurter API (ECB data, free)
 async def fetch_rates(base: str = "USD") -> Optional[Dict]:
-    """
-    Fetch rates from Frankfurter API.
-    https://www.frankfurter.app/
-    
-    Free, no API key needed, backed by European Central Bank data.
-    Note: ECB doesn't publish rates for USD as base, so we may need to convert.
-    """
     url = f"https://api.frankfurter.app/latest?from={base}"
     
     try:
@@ -20,13 +14,8 @@ async def fetch_rates(base: str = "USD") -> Optional[Dict]:
             if response.status_code != 200:
                 return None
             
-            data = response.json()
-            
-            # Frankfurter returns rates relative to base
             rates = data.get("rates", {})
-            
-            # Add base currency with rate 1.0
-            rates[base] = 1.0
+            rates[base] = 1.0  # Add base currency
             
             return {
                 "source": "frankfurter",

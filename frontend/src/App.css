@@ -1,29 +1,22 @@
-/* CSS Variables - Premium Dark Theme */
 :root {
   --bg-primary: #0f0f1a;
   --bg-secondary: #1a1a2e;
   --bg-card: #252540;
   --bg-hover: #2d2d50;
-
   --text-primary: #ffffff;
   --text-secondary: #b0b0c0;
   --text-muted: #707088;
-
   --accent-primary: #6366f1;
   --accent-secondary: #8b5cf6;
   --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
-
   --border-color: rgba(255, 255, 255, 0.1);
   --border-radius: 16px;
   --border-radius-sm: 10px;
-
   --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
-
   --font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
 }
 
@@ -55,7 +48,6 @@ body {
   width: 100%;
 }
 
-/* Header */
 .header {
   background: linear-gradient(180deg, var(--bg-secondary) 0%, transparent 100%);
   padding: 2rem 1.5rem;
@@ -92,14 +84,12 @@ body {
   font-size: 0.95rem;
 }
 
-/* Main Content - FULL WIDTH */
 .main {
   flex: 1;
   width: 100%;
   padding: 1.5rem;
 }
 
-/* Explanation Section */
 .explanation-section {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
   border: 1px solid rgba(99, 102, 241, 0.3);
@@ -126,7 +116,6 @@ body {
   color: var(--accent-primary);
 }
 
-/* Controls */
 .controls {
   display: flex;
   flex-wrap: wrap;
@@ -178,7 +167,6 @@ body {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }
 
-/* Message Banner */
 .message-banner {
   padding: 1rem;
   border-radius: var(--border-radius-sm);
@@ -200,7 +188,6 @@ body {
   color: var(--accent-primary);
 }
 
-/* Loading */
 .loading {
   display: flex;
   flex-direction: column;
@@ -232,9 +219,6 @@ body {
   font-size: 1rem;
 }
 
-/* ============================================ */
-/* RATE GRID - FILLS FULL WIDTH                */
-/* ============================================ */
 .rate-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -242,7 +226,6 @@ body {
   width: 100%;
 }
 
-/* Rate Card - Fills Grid Cell */
 .rate-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -338,7 +321,6 @@ body {
   color: var(--text-secondary);
 }
 
-/* Freshness Indicator */
 .freshness-indicator {
   display: flex;
   flex-wrap: wrap;
@@ -416,7 +398,6 @@ body {
   flex-wrap: wrap;
 }
 
-/* Error State */
 .error-state {
   text-align: center;
   padding: 3rem 1.5rem;
@@ -461,7 +442,6 @@ body {
   box-shadow: var(--shadow-md);
 }
 
-/* Footer */
 .footer {
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
@@ -479,11 +459,6 @@ body {
   margin-top: 0.5rem;
 }
 
-/* ============================================ */
-/* RESPONSIVE - MOBILE FIRST                   */
-/* ============================================ */
-
-/* Small Mobile */
 @media (max-width: 480px) {
   .header {
     padding: 1.5rem 1rem;
@@ -540,7 +515,6 @@ body {
   }
 }
 
-/* Tablet */
 @media (min-width: 481px) and (max-width: 768px) {
   .rate-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -551,14 +525,12 @@ body {
   }
 }
 
-/* Desktop */
 @media (min-width: 769px) and (max-width: 1024px) {
   .rate-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-/* Large Desktop */
 @media (min-width: 1025px) {
   .main {
     padding: 2rem 3rem;
@@ -574,7 +546,6 @@ body {
   }
 }
 
-/* Extra Large Desktop */
 @media (min-width: 1400px) {
   .rate-grid {
     grid-template-columns: repeat(5, 1fr);

@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types'
 
-// Currency symbols and flags
+// Currency symbols and flags for display
 const CURRENCY_DATA = {
     USD: { symbol: '$', flag: '🇺🇸' },
     EUR: { symbol: '€', flag: '🇪🇺' },
@@ -14,7 +14,9 @@ const CURRENCY_DATA = {
     MXN: { symbol: '$', flag: '🇲🇽' }
 }
 
+// Displays individual currency rate card
 function RateCard({ currency, baseCurrency, loading }) {
+    // Fallback for unknown currencies
     const data = CURRENCY_DATA[currency.code] || { symbol: currency.code.charAt(0), flag: '🏳️' }
 
     return (

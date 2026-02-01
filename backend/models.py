@@ -4,22 +4,21 @@ from datetime import datetime
 from enum import Enum
 
 
+# Data freshness levels based on age
 class FreshnessStatus(str, Enum):
-    FRESH = "fresh"          # < 5 minutes
-    RECENT = "recent"        # 5-30 minutes
-    STALE = "stale"          # > 30 minutes
+    FRESH = "fresh"      # < 5 minutes
+    RECENT = "recent"    # 5-30 minutes
+    STALE = "stale"      # > 30 minutes
 
-
+# Individual currency rate data
 class RateData(BaseModel):
-    """Individual currency rate data"""
     code: str
     name: str
     rate: float
     inverse_rate: float
 
-
+# API response model for exchange rates
 class ExchangeRateResponse(BaseModel):
-    """API response model for exchange rates"""
     base: str
     rates: Dict[str, RateData]
     last_updated: datetime
@@ -30,9 +29,8 @@ class ExchangeRateResponse(BaseModel):
     cache_age_seconds: Optional[int] = None
     message: Optional[str] = None
 
-
+# Error response model
 class ErrorResponse(BaseModel):
-    """Error response model"""
     error: bool = True
     message: str
     retry_after_seconds: Optional[int] = 30

@@ -7,7 +7,6 @@ from services.apis import exchangerate_api, frankfurter, fawazahmed
 from services.cache import rate_cache
 from models import FreshnessStatus
 
-
 # Currency metadata for display
 CURRENCY_INFO = {
     "USD": "US Dollar",
@@ -22,12 +21,10 @@ CURRENCY_INFO = {
     "MXN": "Mexican Peso"
 }
 
-# Target currencies to fetch
 TARGET_CURRENCIES = list(CURRENCY_INFO.keys())
 
-
+# Determine freshness based on data age
 def calculate_freshness(last_updated: datetime) -> FreshnessStatus:
-    """Determine freshness status based on age of data"""
     age = datetime.utcnow() - last_updated
     
     if age < timedelta(minutes=5):
@@ -37,12 +34,8 @@ def calculate_freshness(last_updated: datetime) -> FreshnessStatus:
     else:
         return FreshnessStatus.STALE
 
-
+# Resolve conflicting rates from multiple APIs
 def resolve_conflicts(api_results: List[Dict], currency: str) -> Optional[float]:
-    """
-    Resolve conflicting rates from multiple sources using median.
-    Returns None if no valid rates found.
-    """
     rates = []
     
     for result in api_results:
@@ -57,16 +50,12 @@ def resolve_conflicts(api_results: List[Dict], currency: str) -> Optional[float]
     if len(rates) == 1:
         return rates[0]
     
-    # Use median for 2+ sources (resistant to outliers)
+    # Use median to handle outliers from stale sources
     return median(rates)
 
 
 async def fetch_all_rates(base: str = "USD") -> Tuple[Dict, int, int]:
-    """
-    Fetch rates from all APIs in parallel.
-    Returns: (aggregated_rates, sources_used, sources_available)
-    """
-    # Call all APIs in parallel
+    # Parallel API calls for speed
     results = await asyncio.gather(
         exchangerate_api.fetch_rates(base),
         frankfurter.fetch_rates(base),
@@ -74,7 +63,6 @@ async def fetch_all_rates(base: str = "USD") -> Tuple[Dict, int, int]:
         return_exceptions=True
     )
     
-    # Filter out exceptions and None results
     valid_results = [r for r in results if r and not isinstance(r, Exception)]
     sources_available = 3
     sources_used = len(valid_results)
@@ -82,12 +70,10 @@ async def fetch_all_rates(base: str = "USD") -> Tuple[Dict, int, int]:
     if sources_used == 0:
         return {}, 0, sources_available
     
-    # Aggregate rates using conflict resolution
     aggregated_rates = {}
     
     for currency in TARGET_CURRENCIES:
         if currency == base:
-            # Base currency always has rate 1.0
             aggregated_rates[currency] = {
                 "code": currency,
                 "name": CURRENCY_INFO.get(currency, currency),
@@ -106,24 +92,13 @@ async def fetch_all_rates(base: str = "USD") -> Tuple[Dict, int, int]:
     
     return aggregated_rates, sources_used, sources_available
 
-
+# Main function with cache-first strategy
 async def get_exchange_rates(base: str = "USD") -> Dict:
-    """
-    Main function to get exchange rates with caching and fallback.
-    
-    Strategy:
-    1. Check cache - if fresh, return cached data
-    2. Fetch from all APIs in parallel
-    3. If fetch succeeds, cache and return
-    4. If fetch fails, return stale cache if available
-    5. If no cache, return error response
-    """
     cache_key = f"rates_{base}"
     
     # Check cache first
     cached = rate_cache.get(cache_key)
     if cached and not cached["is_stale"]:
-        # Cache is fresh, return it
         return {
             "base": base,
             "rates": cached["data"]["rates"],
@@ -135,15 +110,12 @@ async def get_exchange_rates(base: str = "USD") -> Dict:
             "cache_age_seconds": cached["age_seconds"],
             "message": None
         }
-    
-    # Fetch fresh data
+    # Fetch fresh data from APIs
     rates, sources_used, sources_available = await fetch_all_rates(base)
     
     if sources_used > 0 and rates:
-        # Successfully fetched new data
         now = datetime.utcnow()
         
-        # Cache the result
         rate_cache.set(cache_key, {
             "rates": rates,
             "sources_used": sources_used,
@@ -162,7 +134,7 @@ async def get_exchange_rates(base: str = "USD") -> Dict:
             "message": None
         }
     
-    # All APIs failed - try stale cache
+    # Fallback to stale cache if APIs fail
     stale_cached = rate_cache.get_stale(cache_key)
     if stale_cached:
         return {
@@ -177,7 +149,6 @@ async def get_exchange_rates(base: str = "USD") -> Dict:
             "message": "Using cached data - live rates temporarily unavailable"
         }
     
-    # No cache available at all
     return {
         "base": base,
         "rates": {},

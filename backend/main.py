@@ -15,16 +15,16 @@ app = FastAPI(
 # CORS middleware for frontend access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
+# Health check endpoint
 @app.get("/")
 async def root():
-    """Health check endpoint"""
     return {
         "status": "healthy",
         "service": "Currency Exchange Rate API",
@@ -32,6 +32,7 @@ async def root():
     }
 
 
+# Main rates endpoint - returns aggregated exchange rates
 @app.get("/rates", response_model=ExchangeRateResponse)
 async def get_rates(
     base: str = Query(
@@ -41,20 +42,10 @@ async def get_rates(
         max_length=3
     )
 ):
-    """
-    Get current exchange rates for major currencies.
-    
-    - **base**: The base currency to get rates for (default: USD)
-    
-    Returns exchange rates with freshness indicator and source information.
-    Data is aggregated from multiple public APIs for reliability.
-    """
     base = base.upper()
-    
-    # Get aggregated rates
     result = await get_exchange_rates(base)
     
-    # Handle case where no rates available at all
+    # Return 503 if no rates available
     if not result["rates"]:
         return JSONResponse(
             status_code=503,
@@ -80,7 +71,6 @@ async def get_rates(
 
 @app.get("/health")
 async def health_check():
-    """Detailed health check with API status"""
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),

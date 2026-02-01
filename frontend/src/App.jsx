@@ -5,7 +5,7 @@ import FreshnessIndicator from './components/FreshnessIndicator'
 import ErrorState from './components/ErrorState'
 
 const API_BASE_URL = 'http://localhost:8000'
-const REFRESH_INTERVAL = 60000 // 60 seconds
+const REFRESH_INTERVAL = 60000 // Auto-refresh every 60 seconds
 
 function App() {
   const [rates, setRates] = useState(null)
@@ -19,6 +19,7 @@ function App() {
   const [message, setMessage] = useState(null)
   const [baseCurrency, setBaseCurrency] = useState('USD')
 
+  // Fetch rates from backend API
   const fetchRates = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/rates?base=${baseCurrency}`)
@@ -39,6 +40,7 @@ function App() {
       setError(null)
     } catch (err) {
       console.error('Error fetching rates:', err)
+      // Only show error if no cached data
       if (!rates) {
         setError('Unable to fetch exchange rates. Please try again.')
       }
@@ -47,10 +49,11 @@ function App() {
     }
   }, [baseCurrency, rates])
 
+  // Set up auto-refresh interval
   useEffect(() => {
     fetchRates()
     const interval = setInterval(fetchRates, REFRESH_INTERVAL)
-    return () => clearInterval(interval)
+    return () => clearInterval(interval)  // Cleanup on unmount
   }, [fetchRates])
 
   const handleRetry = () => {
@@ -64,7 +67,6 @@ function App() {
     setLoading(true)
   }
 
-  // Currency display names
   const currencyNames = {
     USD: 'US Dollar',
     EUR: 'Euro',
@@ -86,7 +88,6 @@ function App() {
       </header>
 
       <main className="main">
-        {/* Explanation Section */}
         <div className="explanation-section">
           <p className="explanation-title">📊 What This Shows</p>
           <p className="explanation-text">
