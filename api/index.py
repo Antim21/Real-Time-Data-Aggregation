@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 from datetime import datetime
-import urllib.request
-import json
+import requests
 from statistics import median
 
 app = Flask(__name__)
@@ -26,9 +25,9 @@ TARGET_CURRENCIES = list(CURRENCY_INFO.keys())
 def fetch_exchangerate_api(base):
     try:
         url = f"https://open.er-api.com/v6/latest/{base}"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=10) as response:
-            data = json.loads(response.read().decode())
+        response = requests.get(url, timeout=8, headers={'User-Agent': 'CurrencyApp/1.0'})
+        if response.status_code == 200:
+            data = response.json()
             if data.get("result") == "success":
                 return data.get("rates", {})
     except Exception as e:
@@ -39,9 +38,9 @@ def fetch_exchangerate_api(base):
 def fetch_frankfurter(base):
     try:
         url = f"https://api.frankfurter.app/latest?from={base}"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=10) as response:
-            data = json.loads(response.read().decode())
+        response = requests.get(url, timeout=8, headers={'User-Agent': 'CurrencyApp/1.0'})
+        if response.status_code == 200:
+            data = response.json()
             rates = data.get("rates", {})
             rates[base] = 1.0
             return rates
@@ -54,9 +53,9 @@ def fetch_fawazahmed(base):
     try:
         base_lower = base.lower()
         url = f"https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/{base_lower}.json"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=10) as response:
-            data = json.loads(response.read().decode())
+        response = requests.get(url, timeout=8, headers={'User-Agent': 'CurrencyApp/1.0'})
+        if response.status_code == 200:
+            data = response.json()
             raw_rates = data.get(base_lower, {})
             return {k.upper(): v for k, v in raw_rates.items() if isinstance(v, (int, float))}
     except Exception as e:
@@ -79,14 +78,22 @@ def resolve_conflicts(api_results, currency):
 
 
 def get_exchange_rates(base):
-    results = [
-        fetch_exchangerate_api(base),
-        fetch_frankfurter(base),
-        fetch_fawazahmed(base)
-    ]
+    # Try each API one by one
+    results = []
     
-    valid_results = [r for r in results if r is not None]
-    sources_used = len(valid_results)
+    result1 = fetch_exchangerate_api(base)
+    if result1:
+        results.append(result1)
+    
+    result2 = fetch_frankfurter(base)
+    if result2:
+        results.append(result2)
+    
+    result3 = fetch_fawazahmed(base)
+    if result3:
+        results.append(result3)
+    
+    sources_used = len(results)
     
     if sources_used == 0:
         return None, 0
@@ -101,7 +108,7 @@ def get_exchange_rates(base):
                 "inverse_rate": 1.0
             }
         else:
-            rate = resolve_conflicts(valid_results, currency)
+            rate = resolve_conflicts(results, currency)
             if rate:
                 aggregated_rates[currency] = {
                     "code": currency,
@@ -156,12 +163,7 @@ def health():
     response = jsonify({
         "status": "healthy",
         "service": "Currency Exchange Rate API",
-        "timestamp": datetime.utcnow().isoformat(),
-        "apis": {
-            "exchangerate_api": "configured",
-            "frankfurter": "configured",
-            "fawazahmed": "configured"
-        }
+        "timestamp": datetime.utcnow().isoformat()
     })
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
@@ -176,3 +178,8 @@ def root():
     })
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
+
+
+# For local testing
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
