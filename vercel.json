@@ -2,11 +2,7 @@
     "version": 2,
     "builds": [
         {
-            "src": "api/rates.py",
-            "use": "@vercel/python"
-        },
-        {
-            "src": "api/health.py",
+            "src": "api/index.py",
             "use": "@vercel/python"
         },
         {
@@ -19,12 +15,8 @@
     ],
     "routes": [
         {
-            "src": "/api/rates(.*)",
-            "dest": "/api/rates.py"
-        },
-        {
-            "src": "/api/health(.*)",
-            "dest": "/api/health.py"
+            "src": "/api/(.*)",
+            "dest": "/api/index.py"
         },
         {
             "src": "/(.*)",

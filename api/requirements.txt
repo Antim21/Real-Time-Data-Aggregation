@@ -1,2 +1,1 @@
-# No external dependencies needed for Vercel serverless functions
-# Using only Python standard library (http.server, json, urllib)
+flask>=2.0.0

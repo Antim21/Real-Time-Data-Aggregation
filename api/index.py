@@ -1,10 +1,12 @@
-import json
+from flask import Flask, request, jsonify
 from datetime import datetime
 import urllib.request
+import json
 from statistics import median
 
+app = Flask(__name__)
 
-# Currency metadata for display
+# Currency metadata
 CURRENCY_INFO = {
     "USD": "US Dollar",
     "EUR": "Euro", 
@@ -24,7 +26,8 @@ TARGET_CURRENCIES = list(CURRENCY_INFO.keys())
 def fetch_exchangerate_api(base):
     try:
         url = f"https://open.er-api.com/v6/latest/{base}"
-        with urllib.request.urlopen(url, timeout=10) as response:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
             data = json.loads(response.read().decode())
             if data.get("result") == "success":
                 return data.get("rates", {})
@@ -36,7 +39,8 @@ def fetch_exchangerate_api(base):
 def fetch_frankfurter(base):
     try:
         url = f"https://api.frankfurter.app/latest?from={base}"
-        with urllib.request.urlopen(url, timeout=10) as response:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
             data = json.loads(response.read().decode())
             rates = data.get("rates", {})
             rates[base] = 1.0
@@ -50,7 +54,8 @@ def fetch_fawazahmed(base):
     try:
         base_lower = base.lower()
         url = f"https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/{base_lower}.json"
-        with urllib.request.urlopen(url, timeout=10) as response:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
             data = json.loads(response.read().decode())
             raw_rates = data.get(base_lower, {})
             return {k.upper(): v for k, v in raw_rates.items() if isinstance(v, (int, float))}
@@ -66,7 +71,6 @@ def resolve_conflicts(api_results, currency):
             rate = result[currency]
             if isinstance(rate, (int, float)) and rate > 0:
                 rates.append(rate)
-    
     if not rates:
         return None
     if len(rates) == 1:
@@ -109,40 +113,32 @@ def get_exchange_rates(base):
     return aggregated_rates, sources_used
 
 
-def handler(request):
-    from urllib.parse import parse_qs, urlparse
+@app.route('/api/rates', methods=['GET', 'OPTIONS'])
+def rates():
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = '*'
+        return response
     
-    # Parse query parameters
-    parsed = urlparse(request.url if hasattr(request, 'url') else '/?base=USD')
-    params = parse_qs(parsed.query)
-    base = params.get('base', ['USD'])[0].upper()
-    
-    # Get rates
+    base = request.args.get('base', 'USD').upper()
     result = get_exchange_rates(base)
-    rates = result[0] if result else None
-    sources_used = result[1] if result else 0
     
-    headers = {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': '*'
-    }
+    if not result or not result[0]:
+        response = jsonify({
+            "error": True,
+            "message": "Rates temporarily unavailable",
+            "retry_after_seconds": 30
+        })
+        response.status_code = 503
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
     
-    if not rates:
-        return {
-            'statusCode': 503,
-            'headers': headers,
-            'body': json.dumps({
-                "error": True,
-                "message": "Rates temporarily unavailable",
-                "retry_after_seconds": 30
-            })
-        }
-    
-    response = {
+    rates_data, sources_used = result
+    response = jsonify({
         "base": base,
-        "rates": rates,
+        "rates": rates_data,
         "last_updated": datetime.utcnow().isoformat(),
         "freshness": "fresh",
         "sources_used": sources_used,
@@ -150,10 +146,33 @@ def handler(request):
         "is_cached": False,
         "cache_age_seconds": 0,
         "message": None
-    }
-    
-    return {
-        'statusCode': 200,
-        'headers': headers,
-        'body': json.dumps(response)
-    }
+    })
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
+@app.route('/api/health', methods=['GET'])
+def health():
+    response = jsonify({
+        "status": "healthy",
+        "service": "Currency Exchange Rate API",
+        "timestamp": datetime.utcnow().isoformat(),
+        "apis": {
+            "exchangerate_api": "configured",
+            "frankfurter": "configured",
+            "fawazahmed": "configured"
+        }
+    })
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
+@app.route('/', methods=['GET'])
+def root():
+    response = jsonify({
+        "status": "healthy",
+        "service": "Currency Exchange Rate API",
+        "timestamp": datetime.utcnow().isoformat()
+    })
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
